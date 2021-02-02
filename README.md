@@ -1,2 +1,2 @@
-# Tinder
-Creating an application with Tinder functionality
+# Django-project
+improving Django's skills
