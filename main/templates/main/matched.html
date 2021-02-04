@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% for i in matched_users %}
+        {{i}}
+        <a href="/message/{{i.id}}/" class = "btn btn-danger">Message</a>
+    {% endfor%}
+</body>
+</html>

@@ -4,20 +4,14 @@
     <meta charset="UTF-8">
     <title>Title</title>
 </head>
-{% csrf_token %}
-You login as {{user}}
+<div>You login as {{user}}</div>
 <body>
     <div>
             {{all_users.username}}
+
             <a href="/like/{{all_users.id}}/?a=1" class = "btn btn-danger">Like</a>
             <a href="/like/{{all_users.id}}/?a=2" class = "btn btn-danger">Dislike</a>
-        </div>
-    <div>
-        <a href="user_matched/" class = "btn btn-danger">Your matched</a>
+
     </div>
-    <form method="post" class="container" enctype="multipart/form-data">
-        {{form.as_p}}
-       <button type="submit" class="btn btn-success">Send</button>
-    </form>
 </body>
 </html>
