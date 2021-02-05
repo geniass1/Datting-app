@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.db.models import Exists, OuterRef
 from .forms import UserForm
 from django.views.decorators.csrf import csrf_exempt
-import datetime
+from datetime import datetime
 
 
 @csrf_exempt
@@ -15,7 +15,6 @@ def main(request):
     user = request.user
     all_users = NewUser.objects.all().exclude(id=user.id)
     form = UserForm()
-    # breakpoint()
     if request.method == 'POST':
         form = UserForm(request.POST)
         user = request.user
@@ -27,6 +26,17 @@ def main(request):
 
 @login_required(login_url='user:login')
 def reaction(request, id):
+    user = request.user
+    today_limit = len(Likes.objects.all().filter(who=request.user, created=datetime.now()))
+    all_users = NewUser.objects.all().exclude(id=user.id)
+    if request.user.subscription == 'Standart':
+        limitation = 2
+    elif request.user.subscription == 'VIP':
+        limitation = 3
+    else:
+        limitation = len(all_users)
+    if today_limit == limitation:
+        return redirect('main:main')
     likes = Likes(who=request.user, whom=NewUser.objects.get(id=id), is_liked=request.GET['a'] == '1')
     likes.save()
     return redirect('main:iter')
@@ -52,19 +62,16 @@ def user_matched(request):
 
 def iter(request):
     user = request.user
-    # breakpoint()
+    today_limit = len(Likes.objects.all().filter(who=request.user, created=datetime.now()))
     all_users = NewUser.objects.all().exclude(id=user.id)
     all_users = all_users.filter(~Exists(Likes.objects.filter(who=user, whom__id=OuterRef('pk'))))
-    # d1 = Likes.objects.filter(who=user, whom__id=OuterRef('pk'))
-    # d2 = datetime.datetime.strptime('30/04/2015', "%d/%m/%Y").date()
     if request.user.subscription == 'Standart':
         limitation = 2
-        # if Likes.objects.filter(who=user, created=)
     elif request.user.subscription == 'VIP':
         limitation = 3
     else:
-        limitation = len(all_users)
-    if len(all_users) == 0:
+        limitation = len(NewUser.objects.all().exclude(id=user.id))
+    if today_limit == limitation:
         return redirect('main:main')
     return render(request, 'main/iter.html',
                   {'all_users': all_users[0], "user": user})
