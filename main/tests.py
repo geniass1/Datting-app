@@ -1,3 +1,7 @@
-from django.test import TestCase
+import pytest
 
-# Create your tests here.
+
+@pytest.fixture
+def api_client():
+   from rest_framework.test import APIClient
+   return APIClient()

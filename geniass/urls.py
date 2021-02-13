@@ -1,9 +1,11 @@
+from django.conf.urls import url
 from django.contrib import admin
 from django.urls import path, include
 
 from django.conf.urls.static import static
 from django.conf import settings
 from rest_framework.authtoken.views import obtain_auth_token
+from rest_framework.schemas import get_schema_view
 
 
 urlpatterns = [

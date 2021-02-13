@@ -1,6 +1,12 @@
 from rest_framework import serializers
 from .models import NewUser
 
+subscription_choices = (
+    ("Standart", "Standart"),
+    ("VIP", "VIP"),
+    ("Premium", "Premium"),
+)
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,11 +31,14 @@ class ChangeSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
     new_password = serializers.CharField()
+    subscription = serializers.CharField()
 
     def update(self, instance, validated_data):
         instance.username = validated_data['new_username']
         if instance.check_password(validated_data['password']):
             instance.set_password(validated_data['new_password'])
+            if validated_data['subscription'] in subscription_choices:
+                instance.subscription = validated_data['subscription']
             instance.save()
             return instance
 

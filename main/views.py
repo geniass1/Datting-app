@@ -16,39 +16,6 @@ from rest_framework import generics
 from .serializers import UserMatchedSerializer, MessageSerializer, ReactionSerializer
 
 
-@csrf_exempt
-@login_required(login_url='user:login')
-def main(request):
-    user = request.user
-    all_users = NewUser.objects.all().exclude(id=user.id)
-    form = UserForm()
-    if request.method == 'POST':
-        form = UserForm(request.POST)
-        user = request.user
-        user.subscription = form.data['sub']
-        user.save()
-    return render(request, 'main/main.html', {'all_users': all_users[0],
-                                              "user": user,'form': form})
-
-
-@login_required(login_url='user:login')
-def reaction(request, id):
-    user = request.user
-    today_limit = len(Likes.objects.all().filter(who=request.user, created=datetime.now()))
-    all_users = NewUser.objects.all().exclude(id=user.id)
-    if request.user.subscription == 'Standart':
-        limitation = 2
-    elif request.user.subscription == 'VIP':
-        limitation = 3
-    else:
-        limitation = len(all_users)
-    if today_limit == limitation:
-        return redirect('main:main')
-    likes = Likes(who=request.user, whom=NewUser.objects.get(id=id), is_liked=request.GET['a'] == '1')
-    likes.save()
-    return redirect('main:iter')
-
-
 class Reaction(APIView):
     def post(self, request, id):
         username = jwt.decode(request.headers['Authorization'].split(' ')[1], "secret", algorithms=["HS256"])
@@ -72,16 +39,15 @@ class Reaction(APIView):
         return Response(serializer.errors)
 
 
-@csrf_exempt
-def messages(request, id):
-    if request.method == "POST":
-        message = request.POST['message']
-        Messages.objects.create(who=request.user, whom=NewUser.objects.get(id=id), message=message)
-    all_messages = Messages.objects.all().filter(Q(who=request.user, whom__id=id)|Q(who__id=id, whom=request.user))
-    return render(request, 'main/message.html', {'all_messages': all_messages})
-
-
 class Message(APIView):
+    def get(self, request, id):
+        username = jwt.decode(request.headers['Authorization'].split(' ')[1], "secret", algorithms=["HS256"])
+        user = NewUser.objects.get(username=username['username'])
+        all_messages = Messages.objects.all().filter(
+            Q(who=user, whom__id=id) | Q(who__id=id, whom=user))
+        all_messages = [MessageSerializer(instance=message).data for message in all_messages]
+        return Response({'all_messages': all_messages})
+
     def post(self, request, id):
         username = jwt.decode(request.headers['Authorization'].split(' ')[1], "secret", algorithms=["HS256"])
         data = dict(request.data.items())
@@ -94,41 +60,16 @@ class Message(APIView):
         return Response(serializer.errors)
 
 
-def user_matched(request):
-    user = request.user
-    matched_users = NewUser.objects.filter(
-        Exists(Likes.objects.filter(who=user, whom__id=OuterRef('pk'), is_liked=True))).filter(
-        Exists(Likes.objects.filter(who__id=OuterRef('pk'), whom=user, is_liked=True))
-    ).distinct()
-    return render(request, 'main/matched.html', {'matched_users': matched_users})
-
-
 class UserMatched(APIView):
     def get(self, request, *args, **kwargs):
-        user = request.user
+        username = jwt.decode(request.headers['Authorization'].split(' ')[1], "secret", algorithms=["HS256"])
+        user = NewUser.objects.get(username=username['username'])
         qs = NewUser.objects.filter(
             Exists(Likes.objects.filter(who=user, whom__id=OuterRef('pk'), is_liked=True))).filter(
             Exists(Likes.objects.filter(who__id=OuterRef('pk'), whom=user, is_liked=True))
         ).distinct()
         serializers = UserMatchedSerializer(qs, many=True)
         return Response(serializers.data)
-
-
-def iter(request):
-    user = request.user
-    today_limit = len(Likes.objects.all().filter(who=request.user, created=datetime.now()))
-    all_users = NewUser.objects.all().exclude(id=user.id)
-    all_users = all_users.filter(~Exists(Likes.objects.filter(who=user, whom__id=OuterRef('pk'))))
-    if request.user.subscription == 'Standart':
-        limitation = 2
-    elif request.user.subscription == 'VIP':
-        limitation = 3
-    else:
-        limitation = len(NewUser.objects.all().exclude(id=user.id))
-    if today_limit == limitation:
-        return redirect('main:main')
-    return render(request, 'main/iter.html',
-                  {'all_users': all_users[0], "user": user})
 
 
 class Iter(APIView):
