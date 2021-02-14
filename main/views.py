@@ -1,24 +1,18 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
 from user.models import NewUser
-from .models import Likes, Messages
+from main.models import Likes, Messages
 from django.db.models import Q
 from django.db.models import Exists, OuterRef
-from .forms import UserForm
-from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
 import jwt
 
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import generics
-from .serializers import UserMatchedSerializer, MessageSerializer, ReactionSerializer
+from main.serializers import UserMatchedSerializer, MessageSerializer, ReactionSerializer
 
 
 class Reaction(APIView):
     def post(self, request, id):
-        username = jwt.decode(request.headers['Authorization'].split(' ')[1], "secret", algorithms=["HS256"])
+        username = jwt.decode(request.headers['Authorization'].split(' ')[1], 'secret', algorithms=['HS256'])
         user = NewUser.objects.get(username=username['username'])
         today_limit = len(Likes.objects.all().filter(who=user, created=datetime.now()))
         data = dict(request.data.items())
@@ -31,7 +25,7 @@ class Reaction(APIView):
         else:
             limitation = len(NewUser.objects.all().exclude(id=user.id))
         if today_limit == limitation:
-            return Response({"ERROR"})
+            return Response({'ERROR'})
         serializer = ReactionSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
@@ -41,7 +35,7 @@ class Reaction(APIView):
 
 class Message(APIView):
     def get(self, request, id):
-        username = jwt.decode(request.headers['Authorization'].split(' ')[1], "secret", algorithms=["HS256"])
+        username = jwt.decode(request.headers['Authorization'].split(' ')[1], 'secret', algorithms=['HS256'])
         user = NewUser.objects.get(username=username['username'])
         all_messages = Messages.objects.all().filter(
             Q(who=user, whom__id=id) | Q(who__id=id, whom=user))
@@ -49,7 +43,7 @@ class Message(APIView):
         return Response({'all_messages': all_messages})
 
     def post(self, request, id):
-        username = jwt.decode(request.headers['Authorization'].split(' ')[1], "secret", algorithms=["HS256"])
+        username = jwt.decode(request.headers['Authorization'].split(' ')[1], 'secret', algorithms=['HS256'])
         data = dict(request.data.items())
         data['who'] = NewUser.objects.get(username=username['username']).id
         data['whom'] = id
@@ -62,7 +56,7 @@ class Message(APIView):
 
 class UserMatched(APIView):
     def get(self, request, *args, **kwargs):
-        username = jwt.decode(request.headers['Authorization'].split(' ')[1], "secret", algorithms=["HS256"])
+        username = jwt.decode(request.headers['Authorization'].split(' ')[1], 'secret', algorithms=['HS256'])
         user = NewUser.objects.get(username=username['username'])
         qs = NewUser.objects.filter(
             Exists(Likes.objects.filter(who=user, whom__id=OuterRef('pk'), is_liked=True))).filter(
@@ -74,7 +68,7 @@ class UserMatched(APIView):
 
 class Iter(APIView):
     def get(self, request):
-        username = jwt.decode(request.headers['Authorization'].split(' ')[1], "secret", algorithms=["HS256"])
+        username = jwt.decode(request.headers['Authorization'].split(' ')[1], 'secret', algorithms=['HS256'])
         user = NewUser.objects.get(username=username['username'])
         today_limit = len(Likes.objects.all().filter(who=user,
                                                      created=datetime.now()))
@@ -87,5 +81,5 @@ class Iter(APIView):
         else:
             limitation = len(NewUser.objects.all().exclude(id=user.id))
         if today_limit == limitation:
-            return Response({'Limitation is full'})
+            return Response({'Limit'})
         return Response({'username': str(all_users[0]), 'id': all_users[0].id})
